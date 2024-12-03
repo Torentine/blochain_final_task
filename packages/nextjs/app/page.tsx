@@ -7,9 +7,9 @@ import { useEffect, useState } from "react";
 import { BugAntIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { Address } from "~~/components/scaffold-eth";
 import { ethers } from "ethers";
-import VotingContract from "~~/artifacts/contracts/YourContract.sol/YourContract.json"; // путь к вашему смарт-контракту
+import YourContract from "~~/packages/hardhats/contracts/YourContract.sol"; 
 
-const VOTING_CONTRACT_ADDRESS = "Ваш_адрес_контракта"; // Укажите адрес вашего смарт-контракта
+const VOTING_CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3"; 
 
 const Home: NextPage = () => {
   const { address: connectedAddress } = useAccount();
