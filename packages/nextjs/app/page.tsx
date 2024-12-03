@@ -3,11 +3,52 @@
 import Link from "next/link";
 import type { NextPage } from "next";
 import { useAccount } from "wagmi";
+import { useEffect, useState } from "react";
 import { BugAntIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { Address } from "~~/components/scaffold-eth";
+import { ethers } from "ethers";
+import VotingContract from "~~/artifacts/contracts/YourContract.sol/YourContract.json"; // путь к вашему смарт-контракту
+
+const VOTING_CONTRACT_ADDRESS = "Ваш_адрес_контракта"; // Укажите адрес вашего смарт-контракта
 
 const Home: NextPage = () => {
   const { address: connectedAddress } = useAccount();
+  const [candidates, setCandidates] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCandidates = async () => {
+      if (!connectedAddress) return;
+
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const contract = new ethers.Contract(VOTING_CONTRACT_ADDRESS, VotingContract.abi, provider);
+
+      const count = await contract.candidatesCount();
+      const fetchedCandidates = [];
+
+      for (let i = 1; i <= count; i++) {
+        const candidate = await contract.candidates(i);
+        fetchedCandidates.push(candidate);
+      }
+
+      setCandidates(fetchedCandidates);
+      setLoading(false);
+    };
+
+    fetchCandidates();
+  }, [connectedAddress]);
+
+  const handleVote = async (candidateId: number) => {
+    if (!connectedAddress) return;
+
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const signer = provider.getSigner();
+    const contract = new ethers.Contract(VOTING_CONTRACT_ADDRESS, VotingContract.abi, signer);
+
+    const tx = await contract.vote(candidateId);
+    await tx.wait();
+    alert(`Вы проголосовали за кандидата с ID: ${candidateId}`);
+  };
 
   return (
     <>
@@ -15,53 +56,33 @@ const Home: NextPage = () => {
         <div className="px-5">
           <h1 className="text-center">
             <span className="block text-2xl mb-2">Welcome to</span>
-            <span className="block text-4xl font-bold">Scaffold-ETH 2</span>
+            <span className="block text-4xl font-bold">Voting DApp</span>
           </h1>
           <div className="flex justify-center items-center space-x-2 flex-col sm:flex-row">
             <p className="my-2 font-medium">Connected Address:</p>
             <Address address={connectedAddress} />
           </div>
-          <p className="text-center text-lg">
-            Get started by editing{" "}
-            <code className="italic bg-base-300 text-base font-bold max-w-full break-words break-all inline-block">
-              packages/nextjs/app/page.tsx
-            </code>
-          </p>
-          <p className="text-center text-lg">
-            Edit your smart contract{" "}
-            <code className="italic bg-base-300 text-base font-bold max-w-full break-words break-all inline-block">
-              YourContract.sol
-            </code>{" "}
-            in{" "}
-            <code className="italic bg-base-300 text-base font-bold max-w-full break-words break-all inline-block">
-              packages/hardhat/contracts
-            </code>
-          </p>
         </div>
 
         <div className="flex-grow bg-base-300 w-full mt-16 px-8 py-12">
-          <div className="flex justify-center items-center gap-12 flex-col sm:flex-row">
-            <div className="flex flex-col bg-base-100 px-10 py-10 text-center items-center max-w-xs rounded-3xl">
-              <BugAntIcon className="h-8 w-8 fill-secondary" />
-              <p>
-                Tinker with your smart contract using the{" "}
-                <Link href="/debug" passHref className="link">
-                  Debug Contracts
-                </Link>{" "}
-                tab.
-              </p>
+          <h2 className="text-center text-2xl mb-4">Candidates</h2>
+          {loading ? (
+            <p>Loading candidates...</p>
+          ) : (
+            <div className="flex flex-col items-center">
+              {candidates.map((candidate, index) => (
+                <div key={index} className="flex justify-between bg-white p-4 rounded-lg shadow-md mb-2 w-full max-w-md">
+                  <p>{candidate.name}</p>
+                  <button
+                    className="bg-blue-500 text-white py-1 px-3 rounded"
+                    onClick={() => handleVote(candidate.id)}
+                  >
+                    Vote
+                  </button>
+                </div>
+              ))}
             </div>
-            <div className="flex flex-col bg-base-100 px-10 py-10 text-center items-center max-w-xs rounded-3xl">
-              <MagnifyingGlassIcon className="h-8 w-8 fill-secondary" />
-              <p>
-                Explore your local transactions with the{" "}
-                <Link href="/blockexplorer" passHref className="link">
-                  Block Explorer
-                </Link>{" "}
-                tab.
-              </p>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </>
